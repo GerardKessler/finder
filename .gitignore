@@ -1,3 +1,10 @@
-__pycache__/
-.vscode/
-.gitignore
+addon/doc/*.css
+addon/doc/en/
+*_docHandler.py
+*.html
+*.ini
+*.mo
+*.pot
+*.py[co]
+*.nvda-addon
+.sconsign.dblite
