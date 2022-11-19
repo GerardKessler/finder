@@ -1,12 +1,10 @@
-from pathlib import Path
+from os import scandir, walk, getcwd, path
 import re
 from subprocess import run
 
 class NewSearch():
 
 	def __init__(self):
-		self.scopes = {"a": "*", "t": "**/*"}
-		self.folderPath = None
 		self.pattern = None
 		self.scope = None
 		self.newSearch()
@@ -26,24 +24,29 @@ class NewSearch():
 				self.get_files()
 				break
 
-	def get_files(self, folderPath="."):
-		files = Path(folderPath).glob(self.scopes[self.scope])
+	def get_files(self, folder_path= getcwd()):
+		if self.scope == "a":
+			files = [file.path for file in scandir(folder_path) if file.is_file()]
+		elif self.scope == "t":
+			files = []
+			for (absolute_path, folder_name, file_list) in walk(folder_path):
+				for file in file_list:
+					files.append(path.join(absolute_path, file))
 		self.startSearch(files)
 
 	def startSearch(self, files):
 		for file in files:
-			filePath = str(file.absolute()).replace("\\", "/")
-			result = self.search_string(filePath)
+			result = self.search_string(file)
 			if result:
-				print(f"Encontrado en el archivo {file.name}, en la línea {result}")
+				print(f"Encontrado en el archivo {path.split(file)[1]}, en la línea {result}")
 				open_file = input("ingresa a para abrir con el blok de notas")
 				if open_file == "a":
-					run(["notepad", filePath])
+					run(["notepad", file])
 
-	def search_string(self, filePath):
+	def search_string(self, file_path):
 		index = 0
 		try:
-			with Path(filePath).open(mode="r") as f:
+			with open(file_path) as f:
 				for line in f:
 					index+=1
 					if self.pattern.search(line):
