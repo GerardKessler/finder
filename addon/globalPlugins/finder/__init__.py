@@ -44,9 +44,8 @@ class NewSearch(wx.Dialog):
 
 	def __init__(self, parent, new_title):
 		super(NewSearch, self).__init__(parent, -1, title= new_title)
-		self.path_folder = getDocName()
-		self.pattern = re.compile(r"/feeds/")
-		self.scope = "t"
+		self.path_folder = None
+		self.pattern = None
 		self.panel = wx.Panel(self, wx.ID_ANY)
 
 		sizer = wx.BoxSizer(wx.VERTICAL)
@@ -54,8 +53,8 @@ class NewSearch(wx.Dialog):
 		label_1 = wx.StaticText(self.panel, wx.ID_ANY, _("Ruta acttual"))
 		sizer.Add(label_1, 0, 0, 0)
 
-		self.text_ctrl_1 = wx.TextCtrl(self.panel, wx.ID_ANY, self.path_folder)
-		sizer.Add(self.text_ctrl_1, 0, 0, 0)
+		self.search_path = wx.TextCtrl(self.panel, wx.ID_ANY, getDocName())
+		sizer.Add(self.search_path, 0, 0, 0)
 
 		self.browse_button = wx.Button(self.panel, wx.ID_ANY, _(u"Examinar"))
 		sizer.Add(self.browse_button, 0, 0, 0)
@@ -78,6 +77,8 @@ class NewSearch(wx.Dialog):
 
 		self.panel.SetSizer(sizer)
 
+		self.start_button.Bind(wx.EVT_BUTTON, self.get_files)
+
 	def onPass(self, event):
 		pass
 
@@ -90,12 +91,33 @@ class NewSearch(wx.Dialog):
 			gui.mainFrame.postPopup()
 		event.Skip()
 
-	def get_files(self):
-		if self.scope == "a":
-			files = [file.path for file in scandir(self.path_folder) if file.is_file()]
-		elif self.scope == "t":
+	def verify(self):
+		path_folder = self.search_path.GetValue()
+		if path.exists(path_folder):
+			self.path_folder = path_folder
+		else:
+			message(_('Ruta inválida. Por favor vuelva a ingresarla'))
+			self.search_path.SetFocus()
+			return False
+		string_search = self.string_search.GetValue()
+		if string_search == "":
+			message(_('Por favor ingresa alguna búsqueda'))
+			self.string_search.SetFocus()
+			return False
+		try:
+			self.pattern = re.compile(string_search)
+		except re.error:
+			message(_('Expresión regular inválida. Por favor vuelve a intentarlo'))
+			self.string_search.SetFocus()
+			return False
+
+	def get_files(self, event):
+		if not self.verify(): return
+		if self.scope.GetSelection() == 1:
+			files = [file.path for file in scandir(self.search_path.GetValue()) if file.is_file()]
+		elif self.scope.GetSelection() == 0:
 			files = []
-			for (absolute_path, folder_name, file_list) in walk(self.path_folder):
+			for (absolute_path, folder_name, file_list) in walk(self.search_path.GetValue()):
 				for file in file_list:
 					files.append(path.join(absolute_path, file))
 		self.startSearch(files)
