@@ -1,4 +1,5 @@
-﻿from os import path, getcwd, walk, scandir, environ
+﻿from winsound import PlaySound, SND_FILENAME, SND_ASYNC, SND_LOOP, SND_PURGE
+from os import path, getcwd, walk, scandir, environ
 import wx
 import gui
 from comtypes.client import CreateObject as COMCreate
@@ -31,6 +32,8 @@ def getDocName():
 	targetFile= focusedItem.path
 	docPath = path.split(str(targetFile))[0]
 	return docPath
+
+ADDON_PATH = path.dirname(__file__)
 
 class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
@@ -113,6 +116,7 @@ class NewSearch(wx.Dialog):
 
 	def verify(self):
 		path_folder = self.search_path.GetValue()
+		type_search = self.type_search.GetSelection()
 		if path.exists(path_folder):
 			self.path_folder = path_folder
 		else:
@@ -124,7 +128,7 @@ class NewSearch(wx.Dialog):
 			message(_('Por favor ingresa alguna búsqueda'))
 			self.string_search.SetFocus()
 			return False
-		if self.type_search.GetSelection() == 0: return
+		if type_search == 0: return True
 		try:
 			self.pattern = re.compile(string_search)
 			return True
@@ -145,6 +149,7 @@ class NewSearch(wx.Dialog):
 		self.startSearch(files)
 
 	def startSearch(self, files):
+		PlaySound(path.join(ADDON_PATH, "sounds", "tic-tac.wav"), SND_LOOP + SND_ASYNC)
 		results = []
 		for file in files:
 			result = self.search_string(file)
@@ -153,20 +158,24 @@ class NewSearch(wx.Dialog):
 				results.append(result_dict)
 				self.Close()
 		if len(results) > 0:
+			PlaySound(path.join(ADDON_PATH, "sounds", "finish.wav"), SND_FILENAME)
 			newResults = Results(self.parent, results)
 			self.parent.prePopup()
 			newResults.Show()
 		else:
+			PlaySound(None, SND_PURGE)
 			message(_('No se han encontrado resultados con la búsqueda ingresada'))
 
 	def search_string(self, file_path):
 		index = 0
+		type_search = self.type_search.GetSelection()
+		string_search = self.string_search.GetValue() 
 		try:
-			with open(file_path) as f:
+			with open(file_path, encoding="latin-1") as f:
 				for line in f:
 					index+=1
-					if self.type_search.GetSelection() == 0:
-						if str(self.string_search.GetValue()) in line: 
+					if type_search == 0:
+						if string_search in line: 
 							return index
 					else:
 						if self.pattern.search(line):
