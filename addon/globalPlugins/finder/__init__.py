@@ -1,4 +1,4 @@
-﻿from os import path, getcwd, walk, scandir
+﻿from os import path, getcwd, walk, scandir, environ
 import wx
 import gui
 from comtypes.client import CreateObject as COMCreate
@@ -15,7 +15,7 @@ def getDocName():
 	docPath = ""
 	fg = api.getForegroundObject()
 	if fg.role != api.controlTypes.Role.PANE and fg.appModule.appName != "explorer":
-		return
+		return "None"
 	shell = COMCreate("shell.application")
 	for window in shell.Windows():
 		try:
@@ -27,7 +27,7 @@ def getDocName():
 	else:
 		desktop_path = path.join(path.join(environ['USERPROFILE']), 'Desktop')
 		docPath = '\"' + desktop_path + '\\' + api.getDesktopObject().objectWithFocus().name + '\"'
-		return
+		return "None"
 	targetFile= focusedItem.path
 	docPath = path.split(str(targetFile))[0]
 	return docPath
@@ -60,9 +60,13 @@ class NewSearch(wx.Dialog):
 		self.browse_button = wx.Button(self.panel, wx.ID_ANY, _(u"Examinar"))
 		sizer.Add(self.browse_button, 0, 0, 0)
 
-		self.scope = wx.RadioBox(self.panel, wx.ID_ANY, _(u"Selecciona el alcance de la búsqueda"), choices=[_("Recursiva en todas las carpetas"), _(u"Solo en la raíz de la carpeta actual")], majorDimension=1, style=wx.RA_SPECIFY_COLS)
+		self.scope = wx.RadioBox(self.panel, wx.ID_ANY, _(u"Selecciona el alcance de la búsqueda"), choices=[_("Recursiva: incluye todos los subdirectorios"), _(u"Raíz: solo el directorio actual")], majorDimension=1, style=wx.RA_SPECIFY_COLS)
 		self.scope.SetSelection(0)
 		sizer.Add(self.scope, 0, 0, 0)
+
+		self.type_search = wx.RadioBox(self.panel, wx.ID_ANY, _(u"Selecciona el tipo de búsqueda"), choices=[_("Texto"), _(u"Expresión regular")], majorDimension=1, style=wx.RA_SPECIFY_COLS)
+		self.type_search.SetSelection(0)
+		sizer.Add(self.type_search, 0, 0, 0)
 
 		label_2 = wx.StaticText(self.panel, wx.ID_ANY, _(u"Cadena o expresión regular a buscar"))
 		sizer.Add(label_2, 0, 0, 0)
@@ -120,6 +124,7 @@ class NewSearch(wx.Dialog):
 			message(_('Por favor ingresa alguna búsqueda'))
 			self.string_search.SetFocus()
 			return False
+		if self.type_search.GetSelection() == 0: return
 		try:
 			self.pattern = re.compile(string_search)
 			return True
@@ -160,8 +165,12 @@ class NewSearch(wx.Dialog):
 			with open(file_path) as f:
 				for line in f:
 					index+=1
-					if self.pattern.search(line):
-						return index
+					if self.type_search.GetSelection() == 0:
+						if str(self.string_search.GetValue()) in line: 
+							return index
+					else:
+						if self.pattern.search(line):
+							return index
 		except (PermissionError, TypeError, UnicodeDecodeError):
 			pass
 		return False
