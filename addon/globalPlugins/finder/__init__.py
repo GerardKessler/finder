@@ -1,4 +1,4 @@
-﻿from os import path, getcwd, walk, scandir, environ
+﻿from os import path, getcwd, walk, scandir
 import wx
 import gui
 from comtypes.client import CreateObject as COMCreate
@@ -46,6 +46,7 @@ class NewSearch(wx.Dialog):
 		super(NewSearch, self).__init__(parent, -1, title= new_title)
 		self.path_folder = None
 		self.pattern = None
+		self.parent = parent
 		self.panel = wx.Panel(self, wx.ID_ANY)
 
 		sizer = wx.BoxSizer(wx.VERTICAL)
@@ -106,6 +107,7 @@ class NewSearch(wx.Dialog):
 			return False
 		try:
 			self.pattern = re.compile(string_search)
+			return True
 		except re.error:
 			message(_('Expresión regular inválida. Por favor vuelve a intentarlo'))
 			self.string_search.SetFocus()
@@ -123,10 +125,16 @@ class NewSearch(wx.Dialog):
 		self.startSearch(files)
 
 	def startSearch(self, files):
+		results = []
 		for file in files:
 			result = self.search_string(file)
 			if result:
-				print(f"Encontrado en el archivo {path.split(file)[1]}, en la línea {result}")
+				result_dict = {"name": path.split(file)[1], "path": file, "line": result}
+				results.append(result_dict)
+				self.Destroy()
+				newResults = Results(self.parent, results)
+		self.parent.prePopup()
+		newResults.Show()
 
 	def search_string(self, file_path):
 		index = 0
@@ -140,3 +148,25 @@ class NewSearch(wx.Dialog):
 			pass
 		return False
 
+class Results(wx.Dialog):
+	def __init__(self, parent, results):
+		super(Results, self).__init__(parent, -1, title= _('Resultados'))
+		self.results = [f"{result['name']}, línea {result['line']}" for result in results]
+		self.panel_1 = wx.Panel(self, wx.ID_ANY)
+
+		sizer_1 = wx.BoxSizer(wx.VERTICAL)
+
+		label_1 = wx.StaticText(self.panel_1, wx.ID_ANY, _("Archivos encontrados"))
+		sizer_1.Add(label_1, 0, 0, 0)
+
+		self.file_list = wx.ListBox(self.panel_1, wx.ID_ANY, choices=self.results)
+		self.file_list.SetSelection(0)
+		sizer_1.Add(self.file_list, 0, 0, 0)
+
+		self.button_1 = wx.Button(self.panel_1, wx.ID_ANY, _("Abrir en una ventana de NVDA"))
+		sizer_1.Add(self.button_1, 0, 0, 0)
+
+		self.button_2 = wx.Button(self.panel_1, wx.ID_ANY, _("Abrir con el bloc de notas"))
+		sizer_1.Add(self.button_2, 0, 0, 0)
+
+		self.panel_1.SetSizer(sizer_1)
