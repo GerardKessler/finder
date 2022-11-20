@@ -7,7 +7,7 @@ import controlTypes
 import api
 from scriptHandler import script
 from ui import message, browseableMessage
-
+from threading import Thread
 import re
 from subprocess import run
 
@@ -138,8 +138,8 @@ class NewSearch(wx.Dialog):
 				results.append(result_dict)
 				self.Close()
 				newResults = Results(self.parent, results)
-		self.parent.prePopup()
-		newResults.Show()
+				self.parent.prePopup()
+				newResults.Show()
 
 	def search_string(self, file_path):
 		index = 0
@@ -154,9 +154,11 @@ class NewSearch(wx.Dialog):
 		return False
 
 class Results(wx.Dialog):
+
 	def __init__(self, parent, results):
 		super(Results, self).__init__(parent, -1, title= _(f'{len(results)} resultados'))
-		self.results = [f"{result['name']}, línea {result['line']}" for result in results]
+		self.results = results
+		self.name_files = [f"{result['name']}, línea {result['line']}" for result in results]
 		self.panel = wx.Panel(self, wx.ID_ANY)
 
 		sizer_1 = wx.BoxSizer(wx.VERTICAL)
@@ -164,24 +166,26 @@ class Results(wx.Dialog):
 		label_1 = wx.StaticText(self.panel, wx.ID_ANY, _("Archivos encontrados"))
 		sizer_1.Add(label_1, 0, 0, 0)
 
-		self.file_list = wx.ListBox(self.panel, wx.ID_ANY, choices=self.results)
-		self.file_list.SetSelection(0)
-		sizer_1.Add(self.file_list, 0, 0, 0)
+		self.list_files = wx.ListBox(self.panel, wx.ID_ANY, choices=self.name_files)
+		self.list_files.SetSelection(0)
+		sizer_1.Add(self.list_files, 0, 0, 0)
 
-		self.button_1 = wx.Button(self.panel, wx.ID_ANY, _("Abrir en una ventana de NVDA"))
-		sizer_1.Add(self.button_1, 0, 0, 0)
+		self.nvda_button = wx.Button(self.panel, wx.ID_ANY, _("Abrir en una ventana de NVDA"))
+		sizer_1.Add(self.nvda_button, 0, 0, 0)
 
-		self.button_2 = wx.Button(self.panel, wx.ID_ANY, _("Abrir con el bloc de notas"))
-		sizer_1.Add(self.button_2, 0, 0, 0)
+		self.notepad_button = wx.Button(self.panel, wx.ID_ANY, _("Abrir con el bloc de notas"))
+		sizer_1.Add(self.notepad_button, 0, 0, 0)
 
 		self.cancel_button = wx.Button(self.panel, wx.ID_CANCEL, _('&Cerrar'))
 		sizer_1.Add(self.cancel_button, 0, 0, 0)
 
 		self.panel.SetSizer(sizer_1)
 
+		self.nvda_button.Bind(wx.EVT_BUTTON, self.onNVDA)
+		self.notepad_button.Bind(wx.EVT_BUTTON, self.onNotepad)
 		self.cancel_button.Bind(wx.EVT_BUTTON, self.onSalir)
 		self.Bind(wx.EVT_ACTIVATE, self.onSalir)
-		self.Bind(wx.EVT_BUTTON, self.onSalir, id=wx.ID_CANCEL)
+		# self.Bind(wx.EVT_BUTTON, self.onSalir, id=wx.ID_CANCEL)
 
 	def onPass(self, event):
 		pass
@@ -194,3 +198,13 @@ class Results(wx.Dialog):
 			self.Destroy()
 			gui.mainFrame.postPopup()
 		event.Skip()
+
+	def onNVDA(self, event):
+		browseableMessage(self.results[self.list_files.GetSelection()]["path"])
+
+	def onNotepad(self, event):
+		Thread(target=self.notepad, daemon= True).start()
+
+	def notepad(self):
+		file_path = self.results[self.list_files.GetSelection()]["path"]
+		run(["notepad", file_path])
