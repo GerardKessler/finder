@@ -44,7 +44,7 @@ class NewSearch(wx.Dialog):
 
 	def __init__(self, parent, new_title):
 		super(NewSearch, self).__init__(parent, -1, title= new_title)
-		self.path_folder = None
+		self.path_folder = getDocName()
 		self.pattern = None
 		self.parent = parent
 		self.panel = wx.Panel(self, wx.ID_ANY)
@@ -54,7 +54,7 @@ class NewSearch(wx.Dialog):
 		label_1 = wx.StaticText(self.panel, wx.ID_ANY, _("Ruta acttual"))
 		sizer.Add(label_1, 0, 0, 0)
 
-		self.search_path = wx.TextCtrl(self.panel, wx.ID_ANY, getDocName())
+		self.search_path = wx.TextCtrl(self.panel, wx.ID_ANY, self.path_folder)
 		sizer.Add(self.search_path, 0, 0, 0)
 
 		self.browse_button = wx.Button(self.panel, wx.ID_ANY, _(u"Examinar"))
@@ -78,11 +78,12 @@ class NewSearch(wx.Dialog):
 
 		self.panel.SetSizer(sizer)
 
+		self.browse_button.Bind(wx.EVT_BUTTON, self.fileDialog)
 		self.start_button.Bind(wx.EVT_BUTTON, self.get_files)
 		self.cancel_button.Bind(wx.EVT_BUTTON, self.onSalir)
 		self.search_path.Bind(wx.EVT_CONTEXT_MENU, self.onPass)
 		self.string_search.Bind(wx.EVT_CONTEXT_MENU, self.onPass)
-		self.Bind(wx.EVT_ACTIVATE, self.onSalir)
+		# self.Bind(wx.EVT_ACTIVATE, self.onSalir)
 		self.Bind(wx.EVT_BUTTON, self.onSalir, id=wx.ID_CANCEL)
 
 	def onPass(self, event):
@@ -96,6 +97,15 @@ class NewSearch(wx.Dialog):
 			self.Destroy()
 			gui.mainFrame.postPopup()
 		event.Skip()
+
+	def fileDialog(self, event):
+		dlg = wx.DirDialog(self, message=_('Seleccionar carpeta de búsqueda'), style=wx.DD_DEFAULT_STYLE)
+		if dlg.ShowModal() == wx.ID_OK:
+			self.search_path.SetValue(dlg.GetPath())
+			self.search_path.SetFocus()
+		else:
+			return
+			dlg.Destroy()
 
 	def verify(self):
 		path_folder = self.search_path.GetValue()
@@ -137,9 +147,12 @@ class NewSearch(wx.Dialog):
 				result_dict = {"name": path.split(file)[1], "path": file, "line": result}
 				results.append(result_dict)
 				self.Close()
-				newResults = Results(self.parent, results)
-				self.parent.prePopup()
-				newResults.Show()
+		if len(results) > 0:
+			newResults = Results(self.parent, results)
+			self.parent.prePopup()
+			newResults.Show()
+		else:
+			message(_('No se han encontrado resultados con la búsqueda ingresada'))
 
 	def search_string(self, file_path):
 		index = 0
@@ -170,22 +183,23 @@ class Results(wx.Dialog):
 		self.list_files.SetSelection(0)
 		sizer_1.Add(self.list_files, 0, 0, 0)
 
-		self.nvda_button = wx.Button(self.panel, wx.ID_ANY, _("Abrir en una ventana de NVDA"))
-		sizer_1.Add(self.nvda_button, 0, 0, 0)
-
 		self.notepad_button = wx.Button(self.panel, wx.ID_ANY, _("Abrir con el bloc de notas"))
 		sizer_1.Add(self.notepad_button, 0, 0, 0)
+
+		self.clipboard_button = wx.Button(self.panel, wx.ID_ANY, _("Copiar la ruta del archivo al portapapeles"))
+		sizer_1.Add(self.clipboard_button, 0, 0, 0)
 
 		self.cancel_button = wx.Button(self.panel, wx.ID_CANCEL, _('&Cerrar'))
 		sizer_1.Add(self.cancel_button, 0, 0, 0)
 
 		self.panel.SetSizer(sizer_1)
 
-		self.nvda_button.Bind(wx.EVT_BUTTON, self.onNVDA)
+
+		self.clipboard_button.Bind(wx.EVT_BUTTON, self.onClipboard)
 		self.notepad_button.Bind(wx.EVT_BUTTON, self.onNotepad)
 		self.cancel_button.Bind(wx.EVT_BUTTON, self.onSalir)
-		self.Bind(wx.EVT_ACTIVATE, self.onSalir)
-		# self.Bind(wx.EVT_BUTTON, self.onSalir, id=wx.ID_CANCEL)
+		# self.Bind(wx.EVT_ACTIVATE, self.onSalir)
+		self.Bind(wx.EVT_BUTTON, self.onSalir, id=wx.ID_CANCEL)
 
 	def onPass(self, event):
 		pass
@@ -199,8 +213,10 @@ class Results(wx.Dialog):
 			gui.mainFrame.postPopup()
 		event.Skip()
 
-	def onNVDA(self, event):
-		browseableMessage(self.results[self.list_files.GetSelection()]["path"])
+	def onClipboard(self, event):
+		selection = self.list_files.GetSelection()
+		api.copyToClip(self.results[selection]["path"])
+		message(_('Ruta del archivo copiada al portapapeles'))
 
 	def onNotepad(self, event):
 		Thread(target=self.notepad, daemon= True).start()
