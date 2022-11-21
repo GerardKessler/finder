@@ -1,6 +1,14 @@
-﻿from winsound import PlaySound, SND_FILENAME, SND_ASYNC, SND_LOOP, SND_PURGE
-from os import path, getcwd, walk, scandir, environ
+﻿# -*- coding: utf-8 -*-
+# Copyright (C) 2021 Gera Késsler <gera.kessler@gmail.com>
+# This file is covered by the GNU General Public License.
+
 import wx
+from threading import Thread
+import re
+from subprocess import run
+from winsound import PlaySound, SND_FILENAME, SND_ASYNC, SND_LOOP, SND_PURGE
+from os import path, getcwd, walk, scandir, environ
+
 import gui
 from comtypes.client import CreateObject as COMCreate
 import globalPluginHandler
@@ -8,10 +16,8 @@ import controlTypes
 import api
 from scriptHandler import script
 from ui import message, browseableMessage
-from threading import Thread
-import re
-from subprocess import run
 
+# # código desarrollado originalmente por Alberto Buffolino para el complemento Column review
 def getDocName():
 	docPath = ""
 	fg = api.getForegroundObject()
@@ -37,8 +43,12 @@ ADDON_PATH = path.dirname(__file__)
 
 class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
-	@script(gesture="kb:NVDA+control+shift+p")
-	def script_getPath(self, gesture):
+	@script(
+		category= 'finder',
+		description= _('Activa la ventana de nueva búsqueda'),
+		gesture=None
+	)
+	def script_newFinder(self, gesture):
 		newSearch = NewSearch(gui.mainFrame, _('Nueva búsqueda'))
 		gui.mainFrame.prePopup()
 		newSearch.Show()
