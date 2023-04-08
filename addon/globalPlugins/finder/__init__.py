@@ -288,6 +288,7 @@ class Results(wx.Dialog):
 
 	def notepad(self):
 		file_path= self.results[self.list_files.GetSelection()]["path"]
+		message(_('Abriendo el archivo. Por favor espere...'))
 		try:
 			run(["C:\\Program Files\\Notepad++\\notepad++.exe", "-n{}".format(self.results[self.list_files.GetSelection()]["line"]), file_path])
 		except:
