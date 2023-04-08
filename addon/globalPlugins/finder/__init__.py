@@ -7,6 +7,7 @@ from threading import Thread
 import queue
 import re
 from subprocess import run
+from math import inf
 from winsound import PlaySound, SND_FILENAME, SND_ASYNC, SND_LOOP, SND_PURGE
 from os import path, getcwd, walk, scandir, environ
 
@@ -92,6 +93,11 @@ class NewSearch(wx.Dialog):
 		self.scope= wx.RadioBox(self.panel, wx.ID_ANY, _(u"Selecciona el alcance de la búsqueda"), choices=[_("Recursiva: incluye todos los subdirectorios"), _(u"Raíz: solo el directorio actual")], majorDimension=1, style=wx.RA_SPECIFY_COLS)
 		self.scope.SetSelection(0)
 		sizer.Add(self.scope, 0, 0, 0)
+
+		self.amounts= [[_('Un resultado'), 1], [_('5 resultados'), 5], [_('10 resultados'), 10], [_('25 resultados'), 25], [_('Todos los resultados'), inf]]
+		self.amount= wx.RadioBox(self.panel, wx.ID_ANY, _(u"Selecciona la cantidad de resultados a mostrar"), choices=[amount[0] for amount in self.amounts], majorDimension=1, style=wx.RA_SPECIFY_COLS)
+		self.amount.SetSelection(1)
+		sizer.Add(self.amount, 0, 0, 0)
 
 		self.type_search= wx.RadioBox(self.panel, wx.ID_ANY, _(u"Selecciona el tipo de búsqueda"), choices=[_("Texto"), _(u"Expresión regular")], majorDimension=1, style=wx.RA_SPECIFY_COLS)
 		self.type_search.SetSelection(0)
@@ -198,6 +204,8 @@ class NewSearch(wx.Dialog):
 			if result:
 				result_dict= {"name": path.split(file)[1], "path": file, "line": result}
 				results.append(result_dict)
+				if len(results) == self.amounts[self.amount.GetSelection()][1]:
+					break
 		PlaySound(path.join(ADDON_PATH, "sounds", "finish.wav"), SND_FILENAME)
 		out_queue.put(results)
 		self.dlgload.getMessage("")
