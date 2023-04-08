@@ -246,7 +246,7 @@ class Results(wx.Dialog):
 		self.list_files.SetSelection(0)
 		sizer_1.Add(self.list_files, 0, 0, 0)
 
-		self.notepad_button= wx.Button(self.panel, wx.ID_ANY, _("Abrir con el bloc de notas"))
+		self.notepad_button= wx.Button(self.panel, wx.ID_ANY, _("Abrir con el notepad++ en la línea especificada"))
 		sizer_1.Add(self.notepad_button, 0, 0, 0)
 
 		self.clipboard_button= wx.Button(self.panel, wx.ID_ANY, _("Copiar la ruta del archivo al portapapeles"))
@@ -288,7 +288,10 @@ class Results(wx.Dialog):
 
 	def notepad(self):
 		file_path= self.results[self.list_files.GetSelection()]["path"]
-		run(["notepad", file_path])
+		try:
+			run(["C:\\Program Files\\Notepad++\\notepad++.exe", "-n{}".format(self.results[self.list_files.GetSelection()]["line"]), file_path])
+		except:
+			run(["notepad", file_path])
 
 class PopupDialog(wx.Dialog):
 	def __init__(self, parent, title, msg):
