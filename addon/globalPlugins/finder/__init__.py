@@ -19,6 +19,10 @@ import api
 import globalVars
 from scriptHandler import script
 from ui import message, browseableMessage
+import addonHandler
+
+# Lína de traducción
+addonHandler.initTranslation()
 
 # # código desarrollado originalmente por Alberto Buffolino para el complemento Column review
 def getDocName():
