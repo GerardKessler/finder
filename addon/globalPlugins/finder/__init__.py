@@ -9,7 +9,7 @@ import re
 from subprocess import run
 from math import inf
 from winsound import PlaySound, SND_FILENAME, SND_ASYNC, SND_LOOP, SND_PURGE
-from os import path, getcwd, walk, scandir, environ
+from os import path, getcwd, walk, scandir, environ, system
 
 import gui
 from comtypes.client import CreateObject as COMCreate
@@ -19,10 +19,6 @@ import api
 import globalVars
 from scriptHandler import script
 from ui import message, browseableMessage
-import addonHandler
-
-# Lína de traducción
-addonHandler.initTranslation()
 
 # # código desarrollado originalmente por Alberto Buffolino para el complemento Column review
 def getDocName():
@@ -54,12 +50,17 @@ def disableInSecureMode(decoratedCls):
 	return decoratedCls
 
 @disableInSecureMode
-
 class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
 	def __init__(self):
 		super(GlobalPlugin, self).__init__()
 		self.IS_WINON= False
+		self.fileVerify()
+
+	def fileVerify(self):
+		if not path.exists(path.join(ADDON_PATH, 'editor')):
+			with open(path.join(ADDON_PATH, 'editor'), 'w') as editor:
+				editor.write('notepad')
 
 	@script(
 		category= 'finder',
@@ -250,22 +251,28 @@ class Results(wx.Dialog):
 		self.list_files.SetSelection(0)
 		sizer_1.Add(self.list_files, 0, 0, 0)
 
-		self.notepad_button= wx.Button(self.panel, wx.ID_ANY, _("Abrir con el notepad++ en la línea especificada"))
+		with open(path.join(ADDON_PATH, 'editor'), 'r') as editor:
+			self.program= editor.read()
+		self.notepad_button= wx.Button(self.panel, wx.ID_ANY, _("Abrir el archivo con {}".format(self.program)))
 		sizer_1.Add(self.notepad_button, 0, 0, 0)
 
 		self.clipboard_button= wx.Button(self.panel, wx.ID_ANY, _("Copiar la ruta del archivo al portapapeles"))
 		sizer_1.Add(self.clipboard_button, 0, 0, 0)
+
+		self.change_editor_button= wx.Button(self.panel, wx.ID_ANY, _('Editor por defecto: {}. Pulsar para cambiar').format(self.program))
+		sizer_1.Add(self.change_editor_button, 0, 0, 0)
 
 		self.cancel_button= wx.Button(self.panel, wx.ID_CANCEL, _('&Cerrar'))
 		sizer_1.Add(self.cancel_button, 0, 0, 0)
 
 		self.panel.SetSizer(sizer_1)
 
-
 		self.clipboard_button.Bind(wx.EVT_BUTTON, self.onClipboard)
-		self.notepad_button.Bind(wx.EVT_BUTTON, self.onNotepad)
+		self.notepad_button.Bind(wx.EVT_BUTTON, self.fileOpen)
+		self.change_editor_button.Bind(wx.EVT_BUTTON, self.changeEditor)
 		self.cancel_button.Bind(wx.EVT_BUTTON, self.onSalir)
 		self.Bind(wx.EVT_BUTTON, self.onSalir, id=wx.ID_CANCEL)
+
 
 	def onPass(self, event):
 		pass
@@ -281,22 +288,47 @@ class Results(wx.Dialog):
 			gui.mainFrame.postPopup()
 		event.Skip()
 
+	def changeEditor(self, event):
+		if self.program == 'BlocDeNotas':
+			new_editor= 'notepad++'
+		elif self.program == 'notepad++':
+			new_editor= 'VisualStudioCode'
+		elif self.program == 'VisualStudioCode':
+			new_editor= 'BlocDeNotas'
+		with open(path.join(ADDON_PATH, 'editor'), 'w') as editor:
+			editor.write(new_editor)
+		self.program= new_editor
+		self.notepad_button.SetLabel(_('Abrir el archivo con {}').format(new_editor))
+		self.change_editor_button.SetLabel(_('Editor por defecto: {}. Pulsar para cambiar').format(new_editor))
+
 	def onClipboard(self, event):
 		selection= self.list_files.GetSelection()
 		api.copyToClip(self.results[selection]["path"])
 		# Translators: Aviso de que la ruta ha sido copiada al portapapeles
 		message(_('Ruta del archivo copiada al portapapeles'))
 
-	def onNotepad(self, event):
-		Thread(target=self.notepad, daemon= True).start()
+	def fileOpen(self, event):
+		Thread(target=self.startOpen, daemon= True).start()
 
-	def notepad(self):
+	def startOpen(self):
 		file_path= self.results[self.list_files.GetSelection()]["path"]
 		message(_('Abriendo el archivo. Por favor espere...'))
-		try:
-			run(["C:\\Program Files\\Notepad++\\notepad++.exe", "-n{}".format(self.results[self.list_files.GetSelection()]["line"]), file_path])
-		except:
-			run(["notepad", file_path])
+		if self.program == 'notepad++':
+			if path.exists('C:/Program Files/Notepad++/notepad++.exe'):
+				run(['C:/Program Files/Notepad++/notepad++.exe', "-n{}".format(self.results[self.list_files.GetSelection()]["line"]), file_path])
+				return
+			elif path.exists('C:/Program Files (x86)/Notepad++/notepad++.exe'):
+				run(['C:/Program Files (x86)/Notepad++/notepad++.exe', "-n{}".format(self.results[self.list_files.GetSelection()]["line"]), file_path])
+				return
+			else:
+				gui.messageBox(_('No se pudo abrir el archivo con este editor. Se utilizará el bloc de notas en su lugar'), '😟')
+		elif self.program == 'VisualStudioCode':
+			try:
+				system('code -g {}:{}'.format(file_path, self.results[self.list_files.GetSelection()]["line"]))
+				return
+			except:
+				gui.messageBox(_('No se pudo abrir el archivo con este editor. Se utilizará el bloc de notas en su lugar'), '😟')
+		run(["notepad", file_path])
 
 class PopupDialog(wx.Dialog):
 	def __init__(self, parent, title, msg):
