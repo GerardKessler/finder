@@ -60,7 +60,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def fileVerify(self):
 		if not path.exists(path.join(ADDON_PATH, 'editor')):
 			with open(path.join(ADDON_PATH, 'editor'), 'w') as editor:
-				editor.write('notepad')
+				editor.write('BlocDeNotas')
 
 	@script(
 		category= 'finder',
@@ -253,7 +253,7 @@ class Results(wx.Dialog):
 
 		with open(path.join(ADDON_PATH, 'editor'), 'r') as editor:
 			self.program= editor.read()
-		self.notepad_button= wx.Button(self.panel, wx.ID_ANY, _("Abrir el archivo con {}".format(self.program)))
+		self.notepad_button= wx.Button(self.panel, wx.ID_ANY, _("Abrir el archivo con el {}".format(self.program)))
 		sizer_1.Add(self.notepad_button, 0, 0, 0)
 
 		self.clipboard_button= wx.Button(self.panel, wx.ID_ANY, _("Copiar la ruta del archivo al portapapeles"))
@@ -298,7 +298,7 @@ class Results(wx.Dialog):
 		with open(path.join(ADDON_PATH, 'editor'), 'w') as editor:
 			editor.write(new_editor)
 		self.program= new_editor
-		self.notepad_button.SetLabel(_('Abrir el archivo con {}').format(new_editor))
+		self.notepad_button.SetLabel(_('Abrir el archivo con el {}').format(new_editor))
 		self.change_editor_button.SetLabel(_('Editor por defecto: {}. Pulsar para cambiar').format(new_editor))
 
 	def onClipboard(self, event):
