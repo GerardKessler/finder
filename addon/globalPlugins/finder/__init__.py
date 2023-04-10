@@ -9,7 +9,8 @@ import re
 from subprocess import run
 from math import inf
 from winsound import PlaySound, SND_FILENAME, SND_ASYNC, SND_LOOP, SND_PURGE
-from os import path, getcwd, walk, scandir, environ, system
+from os import path, getcwd, walk, scandir, environ
+from shellapi import ShellExecute
 
 import gui
 from comtypes.client import CreateObject as COMCreate
@@ -179,7 +180,7 @@ class NewSearch(wx.Dialog):
 	def get_files(self, event):
 		if not self.verify(): return
 		self.out_queue= queue.Queue()
-		thread= Thread(target= self.get_file_list, args= (self.out_queue,), daemon= True).start()
+		thread= Thread(target=self.get_file_list, args= (self.out_queue,), daemon= True).start()
 		# Translators: Mensaje de espera
 		self.dlgload= PopupDialog(None, _('Espere por favor...'), _("Obteniendo datos."))
 		self.dlgload.ShowModal()
@@ -324,7 +325,7 @@ class Results(wx.Dialog):
 				gui.messageBox(_('No se pudo abrir el archivo con este editor. Se utilizará el bloc de notas en su lugar'), '😟')
 		elif self.program == 'VisualStudioCode':
 			try:
-				system('code -g {}:{}'.format(file_path, self.results[self.list_files.GetSelection()]["line"]))
+				ShellExecute(None, None, 'code', '-g {}:{}'.format(file_path, self.results[self.list_files.GetSelection()]["line"]), None, 10)
 				return
 			except:
 				gui.messageBox(_('No se pudo abrir el archivo con este editor. Se utilizará el bloc de notas en su lugar'), '😟')
