@@ -138,7 +138,7 @@ class NewSearch(wx.Dialog):
 			self.frame.IS_WINON= False
 			self.Destroy()
 			gui.mainFrame.postPopup()
-		elif event.GetActive() == False:
+		elif not event.GetSkipped():
 			self.frame.IS_WINON= False
 			self.Destroy()
 			gui.mainFrame.postPopup()
@@ -283,7 +283,7 @@ class Results(wx.Dialog):
 			self.frame.IS_WINON= False
 			self.Destroy()
 			gui.mainFrame.postPopup()
-		elif event.GetActive() == False:
+		elif not event.GetSkipped:
 			self.frame.IS_WINON= False
 			self.Destroy()
 			gui.mainFrame.postPopup()
